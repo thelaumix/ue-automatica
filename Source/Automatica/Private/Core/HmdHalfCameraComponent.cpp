@@ -1,0 +1,40 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Automatica/Public/Core/HmdHalfCameraComponent.h"
+
+#include "IXRCamera.h"
+#include "IXRTrackingSystem.h"
+
+void UHmdHalfCameraComponent::HandleXRCamera()
+{
+	IXRTrackingSystem* XRSystem = GEngine->XRSystem.Get();
+	auto XRCamera = XRSystem->GetXRCamera();
+
+	if (!XRCamera.IsValid())
+	{
+		return;
+	}
+
+	const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
+
+	XRCamera->SetupLateUpdate(ParentWorld, this, bLockToHmd == 0);
+
+	if (bLockToHmd)
+	{
+		FQuat Orientation;
+		FVector Position;
+		if (XRCamera->UpdatePlayerCamera(Orientation, Position))
+		{
+			FVector HalfHeightPosition = Position;
+			//HalfHeightPosition.Z -= ZOffset;
+			SetRelativeTransform(FTransform(Orientation, HalfHeightPosition));
+		}
+		else
+		{
+			ResetRelativeTransform();
+		}
+	}
+
+	XRCamera->OverrideFOV(this->FieldOfView);
+}
