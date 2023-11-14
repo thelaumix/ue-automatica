@@ -27,6 +27,7 @@ AControlUnitIcon::AControlUnitIcon()
 	Visibility = FParamAnimator(this);
 	InnerExtent_A = FParamAnimator(this);
 	bAnimated = true;
+	bCentered = false;
 }
 
 void AControlUnitIcon::SetCommand(const ELogicControlType NewCommand)
@@ -71,6 +72,12 @@ float AControlUnitIcon::GetWidth() const
 	return ((MeshWidth * Drawer.WidthPercentage / 100) + GetActualInnerExtent()) * Scale * Visibility.Get();
 }
 
+void AControlUnitIcon::SetCentered(const bool bNewCentered)
+{
+	bCentered = bNewCentered;
+	SetterAftermath();
+}
+
 float AControlUnitIcon::GetLeftExtentPadding() const
 {
 	if (!Drawer.bUseInnerExtent) return 0;
@@ -92,8 +99,9 @@ bool AControlUnitIcon::SupportsNesting() const
 
 void AControlUnitIcon::InitSelfDestruct()
 {
-	Destroy();
-	// TODO: Implement ACTUAL destuct mechanism
+	Visibility.Set(0);
+	SetActorTickEnabled(true);
+	bToDelete = true;
 }
 
 void AControlUnitIcon::OnConstruction(const FTransform& Transform)
@@ -118,8 +126,10 @@ void AControlUnitIcon::BeginPlay()
 	Visibility.Set(1);
 	InnerExtent_A.OverrideValue(InnerExtent);
 
-	IconMat = UMaterialInstanceDynamic::Create(Icon->GetMaterial(0), this);
-	IconMat->SetScalarParameterValue("Mask", 0);
+	bToDelete = false;
+
+	if (IconMat)
+		IconMat->SetScalarParameterValue("Mask", 0);
 }
 
 void AControlUnitIcon::TickProc_Visibility(uint8 &UnfinishedProcessors)
@@ -129,7 +139,8 @@ void AControlUnitIcon::TickProc_Visibility(uint8 &UnfinishedProcessors)
 		return;
 	
 	UnfinishedProcessors++;
-	IconMat->SetScalarParameterValue("Mask", V_Visibility);
+	if (IconMat)
+		IconMat->SetScalarParameterValue("Mask", V_Visibility);
 }
 
 void AControlUnitIcon::TickProc_InnerExtent(uint8 &UnfinishedProcessors)
@@ -146,6 +157,13 @@ void AControlUnitIcon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (GetWidth() < 0 && bToDelete)
+	{
+		SetActorTickEnabled(false);
+		Destroy();
+		return;
+	}
+
 	uint8 UnfinishedProcessors = 0;
 	TickProc_Visibility(UnfinishedProcessors);
 	TickProc_InnerExtent(UnfinishedProcessors);
@@ -153,7 +171,12 @@ void AControlUnitIcon::Tick(float DeltaTime)
 	if (UnfinishedProcessors > 0)
 		SetterAftermath();
 	else
-		SetActorTickEnabled(false);
+	{
+		if (bToDelete)
+			Destroy();
+		else
+			SetActorTickEnabled(false);
+	}
 }
 
 void AControlUnitIcon::Destroyed()
@@ -165,12 +188,13 @@ void AControlUnitIcon::SetCommand()
 {
 	if (CommandMap && CommandMap->GetCommandSettingDrawer(Command, Drawer))
 	{
-		Icon->SetMaterial(0, Drawer.Material);
+		IconMat = UMaterialInstanceDynamic::Create(Drawer.Material, this);
 	} else
 	{
 		InnerExtent_A.Set(0);
-		Icon->SetMaterial(0, nullptr);
+		IconMat = nullptr;
 	}
+	Icon->SetMaterial(0, IconMat);
 }
 
 void AControlUnitIcon::SetterAftermath()
@@ -178,7 +202,10 @@ void AControlUnitIcon::SetterAftermath()
 	const float ActualWidth = MeshWidth * Drawer.WidthPercentage / 100;
 	float LeftOffset = (MeshWidth / 2) - (ActualWidth / 2);
 
-	LeftOffset -= (1 - Visibility.Get()) * (ActualWidth / 2);
+	if (bCentered)
+		LeftOffset += ActualWidth / 2;
+	else
+		LeftOffset += (1 - Visibility.Get()) * (ActualWidth / 2);
 	
 	Icon->SetRelativeLocation(FVector(-LeftOffset * Scale, 0.5, 0));
 	

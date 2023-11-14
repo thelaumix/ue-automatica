@@ -45,7 +45,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Logic)
 	float GetWidth() const;
 	
-	/** Get the actual display width (ignoring actor scale) */
+	/** Set the actor pivot centered */
+	UFUNCTION(BlueprintCallable, Category = Logic)
+	void SetCentered(bool bNewCentered);
+	
+	/** Get the padding of extendable wrappers */
 	UFUNCTION(BlueprintCallable, Category = Logic)
 	float GetLeftExtentPadding() const;
 	
@@ -58,6 +62,8 @@ public:
 
 	/** Initialize self destruct on actor or component */
 	void InitSelfDestruct();
+
+	uint8 Layer = 0;
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
@@ -97,10 +103,13 @@ private:
 	UPROPERTY(EditAnywhere, Category=Logic)	TEnumAsByte<ELogicControlType> Command;
 	UPROPERTY(EditAnywhere, Category=Logic) float Scale;
 	UPROPERTY(EditAnywhere, Category=Logic) bool bAnimated;
+	UPROPERTY(EditAnywhere, Category=Logic) bool bCentered;
 	UPROPERTY(EditAnywhere, Category=Logic, meta=(EditCondition="Drawer.bUseInnerExtent", EditConditionHides = true)) float InnerExtent;
 	UPROPERTY() FCommandSettingDrawer Drawer;
 	UPROPERTY()	UStaticMeshComponent* Icon;
 	UPROPERTY() UMaterialInstanceDynamic* IconMat;
+
+	UPROPERTY() bool bToDelete = false;
 	
 	FParamAnimator Visibility;
 	FParamAnimator InnerExtent_A;

@@ -2,25 +2,28 @@
 
 
 #include "Logic/LogicActor.h"
+#include "Core/CAutomatica.h"
 
 
-// Sets default values
-ALogicActor::ALogicActor()
+void ALogicActor::PushCommandToReceive(ELogicControlType Command)
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	OnReceiveCommand(Command);
+	Bp_OnReceiveCommand(Command);
 }
 
-// Called when the game starts or when spawned
 void ALogicActor::BeginPlay()
 {
+	UAutomatica::BindLogicActor(this);
 	Super::BeginPlay();
-	
 }
 
-// Called every frame
-void ALogicActor::Tick(float DeltaTime)
+void ALogicActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::Tick(DeltaTime);
+	UAutomatica::ReleaseLogicActor(this);
+	Super::EndPlay(EndPlayReason);
 }
 
+void ALogicActor::SendCommand(ELogicControlType Command)
+{
+	UAutomatica::SendLogicCommand(this, ChannelOut, Command);
+}

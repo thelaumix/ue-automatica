@@ -74,6 +74,7 @@ void FParamAnimator::Set(const double Target)
 	StartingTime = GetCtxTime();
 	From = To;
 	To = Target;
+	LastFetched = INFINITY;
 }
 
 double FParamAnimator::Get() const

@@ -3,11 +3,13 @@
 
 #include "Logic/ControlUnit.h"
 
+#include "Logging/StructuredLog.h"
 
-// Sets default values
+
 AControlUnit::AControlUnit()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bUseChannelBusOutput = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Control Unit"));
 
@@ -17,33 +19,36 @@ AControlUnit::AControlUnit()
 
 void AControlUnit::AddCommand(const ELogicControlType Command)
 {
-	FControlUnitCommandInstance Instance;
-	
-	Instance.Icon = Cast<AControlUnitIcon>(GetWorld()->SpawnActor(IconClass));
-	Instance.Icon->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
-	//Instance.Icon = NewObject<AControlUnitIcon>(RootComponent, IconClass);
-	Instance.Icon->SetCommand(Command);
-	Instance.Layer = CurrentLayer;
-	Commands.Add(Instance);
 
-	if (Instance.Icon->SupportsNesting())
+	auto Icon = Cast<AControlUnitIcon>(GetWorld()->SpawnActor(IconClass));
+	Icon->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
+	//Instance.Icon = NewObject<AControlUnitIcon>(RootComponent, IconClass);
+	Icon->SetCommand(Command);
+	Icon->Layer = CurrentLayer;
+	Commands.Add(Icon);
+	CommandChildBuffer.Add(Icon);
+
+	const double Scale = 1 * FMath::Pow(LayerScaleFactor, CurrentLayer);
+	Icon->SetScale(Scale);
+	CommandIndexPtr++;
+
+	if (Icon->SupportsNesting())
 		CurrentLayer++;
 }
 
 void AControlUnit::Backspace()
 {
-	int Amount = Commands.Num();
-	if (Amount <= 0) return;
+	if (CommandIndexPtr < 0) return;
 
-	const auto ToDelete = Commands[Amount-1];
-	ToDelete.Icon->InitSelfDestruct();
-	Commands.RemoveAt(--Amount);
+	const auto Icon = Commands[CommandIndexPtr];
+	Icon->InitSelfDestruct();
+	Commands.RemoveAt(CommandIndexPtr--);
 
 	// In case any commands are left, apply current layer of latest one
-	if (Amount > 0)
+	if (CommandIndexPtr >= 0)
 	{
-		auto Latest = Commands.Last();
-		CurrentLayer = Latest.Layer;
+		const auto Last = Commands.Last();
+		CurrentLayer = Last->Layer;
 	} else
 	{
 		CurrentLayer = 0;
@@ -64,25 +69,75 @@ void AControlUnit::OnConstruction(const FTransform& Transform)
 	{
 		Screen->SetStaticMesh(ScreenMesh);
 		Screen->SetWorldScale3D(FVector(ScreenWidth/ScreenMeshWidth, 1, ScreenHeight/ScreenMeshWidth));
+		if (ScreenMaterial)
+			Screen->SetMaterial(0, ScreenMaterial);
 	} else
 	{
 		Screen->SetStaticMesh(nullptr);
 	}
 }
 
-// Called when the game starts or when spawned
 void AControlUnit::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentLayer = 0;
+	CommandIndexPtr = -1;
+}
+
+void AControlUnit::HandleLayer(const uint8 BatchLayer, int& Index, double LeftOffset, AControlUnitIcon* Container)
+{
+
+	// In case there is no container but handler shall be a nested layer, abort
+	if (BatchLayer > 0 && Container == nullptr)
+		return;
+
+	double WidthSum = 0;
+	
+	while(Index < CommandChildBuffer.Num())
+	{
+		const auto Icon = CommandChildBuffer[Index++];
+
+		if (Icon == nullptr || !IsValid(Icon))
+		{
+			CommandChildBuffer.Remove(Icon);
+			Index--;
+			continue;
+		}
+
+		// If the instance is a higher layer, abort
+		if (Icon->Layer < BatchLayer)
+		{
+			// Decrease index again
+			Index--;
+			break;
+		}
+
+		if (WidthSum > 0)
+		{
+			WidthSum += GridGap;
+			LeftOffset += GridGap;
+		}
+		
+		Icon->SetActorRelativeLocation(FVector(LeftOffset, 0, 0));
+
+		if (Icon->SupportsNesting())
+		{
+			HandleLayer(Icon->Layer+1, Index, LeftOffset + Icon->GetLeftExtentPadding(), Icon);
+		}
+		WidthSum += Icon->GetWidth();
+		LeftOffset += Icon->GetWidth();
+	}
+
+	if (Container)
+		Container->SetInnerExtent(WidthSum);
 }
 
 // Called every frame
 void AControlUnit::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	
+	int Index = 0;
+	HandleLayer(0, Index, ScreenPadding);
 }
 
 
