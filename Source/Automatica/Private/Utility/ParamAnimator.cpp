@@ -1,7 +1,7 @@
 ﻿// 2023 Lukas A. Schopf // thelaumix productions
 
 
-#include "..\..\Public\Utility\ParamAnimator.h"
+#include "Utility/ParamAnimator.h"
 
 #include "Core/CAutomatica.h"
 #include "Kismet/GameplayStatics.h"
