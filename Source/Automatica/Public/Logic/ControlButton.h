@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ControlUnitIcon.h"
 #include "LogicActor.h"
+//#include "Core/InteractionCatcher.h"
 #include "ControlButton.generated.h"
 
+class UInteractionCatcher;
 class AControlButton;
 
 /** Display shape for control buttons */
@@ -26,6 +27,14 @@ enum EControlButtonType: uint8
 	Backspace		= 2
 };
 
+/** Add / Remove mode for counter modifier */
+UENUM(BlueprintType)
+enum EControlButtonCounterModifier: uint8
+{
+	Add			= 0,
+	Subtract	= 1
+};
+
 /** Button options for building */
 USTRUCT(BlueprintType)
 struct FControlButtonSetup
@@ -39,6 +48,10 @@ struct FControlButtonSetup
 	/** The command to emit */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button", meta=(EditCondition="Type == 0", EditConditionHides = true))
 	TEnumAsByte<ELogicControlType> Command;
+
+	/** The command to emit */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button", meta=(EditCondition="Type == 1", EditConditionHides = true))
+	TEnumAsByte<EControlButtonCounterModifier> Modifier;
 
 	/** Button holding the command the counter shall be modified for */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button", meta=(EditCondition="Type == 1", EditConditionHides = true))
@@ -60,13 +73,17 @@ public:
 	/** Sets up the button with the provided setup */
 	UFUNCTION(BlueprintCallable, Category="Control Button")
 	void SetButtonSetup(FControlButtonSetup ButtonSetup);
+
+	void InteractSetup_Bind(UInteractionCatcher* Catcher);
+	void InteractSetup_Release(UInteractionCatcher* Catcher);
 	
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 	void ConstructShape(EControlButtonShape Shape) const;
-	void ConstructIcon(bool bMakeIcon);
+
+	void HandleInteractionCatcherUpdate();
 
 	/** Button setup. Should be set via SetButtonSetup() on runtime */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Control Button")
@@ -85,14 +102,25 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
 	UStaticMesh* FaceMeshRound;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
-	TSubclassOf<AControlUnitIcon> IconClass;
+	UStaticMesh* PlaneMesh;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
+	UControlCommandSettings* CommandMap;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
 	float ScaleModifier;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
 	float IconScaleModifier;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
+	UMaterialInterface* MatIconPlus;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
+	UMaterialInterface* MatIconMinus;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
+	UMaterialInterface* MatIconBackspace;
 
 private:
 	UPROPERTY() UStaticMeshComponent* CFrame;
 	UPROPERTY() UStaticMeshComponent* CFace;
-	UPROPERTY() AControlUnitIcon* CIcon;
+	UPROPERTY() UStaticMeshComponent* CIcon;
+
+	UPROPERTY() TArray<UInteractionCatcher*> CatchersActive;
 };
