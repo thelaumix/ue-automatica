@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ControlUnit.h"
 #include "LogicActor.h"
+#include "Components/TextRenderComponent.h"
 //#include "Core/InteractionCatcher.h"
 #include "ControlButton.generated.h"
 
@@ -40,6 +42,8 @@ USTRUCT(BlueprintType)
 struct FControlButtonSetup
 {
 	GENERATED_BODY()
+
+	FControlButtonSetup();
 
 	/** The button's functional type */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button")
@@ -83,11 +87,14 @@ protected:
 
 	void ConstructShape(EControlButtonShape Shape) const;
 
-	void HandleInteractionCatcherUpdate();
+	void HandleInteractionCatcherUpdate() const;
 
 	/** Button setup. Should be set via SetButtonSetup() on runtime */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Control Button")
 	FControlButtonSetup Setup;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Control Button")
+	AControlUnit* Unit;
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -109,6 +116,8 @@ protected:
 	float ScaleModifier;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
 	float IconScaleModifier;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup")
+	UCurveFloat* AnimationCurve;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
 	UMaterialInterface* MatIconPlus;
@@ -116,11 +125,20 @@ protected:
 	UMaterialInterface* MatIconMinus;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
 	UMaterialInterface* MatIconBackspace;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
+	UMaterialInterface* ButtonOverlay;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
+	UMaterialInterface* TextMaterial;
 
 private:
 	UPROPERTY() UStaticMeshComponent* CFrame;
 	UPROPERTY() UStaticMeshComponent* CFace;
 	UPROPERTY() UStaticMeshComponent* CIcon;
+	UPROPERTY() UTextRenderComponent* CText;
+	UPROPERTY() UMaterialInstanceDynamic* ButtonOverlayInstance;
+	UPROPERTY() bool bIsToggleMode;
 
 	UPROPERTY() TArray<UInteractionCatcher*> CatchersActive;
+
+	FParamAnimator PPressed;
 };

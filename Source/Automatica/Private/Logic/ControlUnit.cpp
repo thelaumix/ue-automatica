@@ -33,7 +33,10 @@ void AControlUnit::AddCommand(const ELogicControlType Command)
 	CommandIndexPtr++;
 
 	if (Icon->SupportsNesting())
+	{
+		ContainerIndexStack.Add(Commands.Num() - 1);
 		CurrentLayer++;
+	}
 }
 
 void AControlUnit::Backspace()
@@ -41,6 +44,10 @@ void AControlUnit::Backspace()
 	if (CommandIndexPtr < 0) return;
 
 	const auto Icon = Commands[CommandIndexPtr];
+	if (Icon->SupportsNesting())
+	{
+		ContainerIndexStack.Remove(CommandIndexPtr);
+	}
 	Icon->InitSelfDestruct();
 	Commands.RemoveAt(CommandIndexPtr--);
 

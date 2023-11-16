@@ -62,6 +62,7 @@ private:
 	UPROPERTY()	UStaticMeshComponent* Screen;
 	UPROPERTY() TArray<AControlUnitIcon*> Commands;
 	UPROPERTY() TArray<AControlUnitIcon*> CommandChildBuffer;
+	UPROPERTY() TArray<int> ContainerIndexStack;
 	UPROPERTY(VisibleInstanceOnly, Category="Debug", DisplayName="Command Index Pointer") int CommandIndexPtr = -1;
 
 protected:
