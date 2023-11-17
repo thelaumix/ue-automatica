@@ -141,7 +141,13 @@ bool UAutomatica::IsInteractionEnabled(const UObject* Outer)
 	if (!Get(Outer, A))
 		return false;
 
-	return A->bInteractionEnabled;
+	return A->bInteractionEnabled && A->RunningControlUnits.Num() == 0;
+}
+
+void UAutomatica::PlayEnableSound(UAutomatica* A)
+{
+	UFMODEvent* Event = LoadObject<UFMODEvent>(A, TEXT("/Game/FMOD/Events/Glob/Unlock_Actions.Unlock_Actions"));
+	UFMODBlueprintStatics::PlayEvent2D(A, Event, true);
 }
 
 void UAutomatica::SetInteractionEnabled(const UObject* Outer, const bool bEnabled)
@@ -152,9 +158,27 @@ void UAutomatica::SetInteractionEnabled(const UObject* Outer, const bool bEnable
 
 	if (A->bInteractionEnabled != bEnabled && bEnabled)
 	{
-		UFMODEvent* Event = LoadObject<UFMODEvent>(A, TEXT("/Game/FMOD/Events/Glob/Unlock_Actions.Unlock_Actions"));
-		UFMODBlueprintStatics::PlayEvent2D(A, Event, true);
+		PlayEnableSound(A);
 	}
 
 	A->bInteractionEnabled = bEnabled;
+}
+
+void UAutomatica::SetControlUnitPlaying(AControlUnit* Unit, const bool bPlaying)
+{
+	UAutomatica* A;
+	if (!Get(Unit, A))
+		return;
+
+	const bool bIntEnabledBefore = IsInteractionEnabled(Unit);
+	
+	if (bPlaying && !A->RunningControlUnits.Contains(Unit))
+		A->RunningControlUnits.Add(Unit);
+	else if (!bPlaying && A->RunningControlUnits.Contains(Unit))
+		A->RunningControlUnits.Remove(Unit);
+
+	const bool bIntEnabledAfter = IsInteractionEnabled(Unit);
+
+	if (bIntEnabledAfter != bIntEnabledBefore && bIntEnabledAfter)
+		PlayEnableSound(A);
 }

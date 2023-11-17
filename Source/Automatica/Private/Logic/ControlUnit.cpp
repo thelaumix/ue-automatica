@@ -3,6 +3,8 @@
 
 #include "Logic/ControlUnit.h"
 
+#include "Core/CAutomatica.h"
+#include "Kismet/GameplayStatics.h"
 #include "Logging/StructuredLog.h"
 
 
@@ -15,6 +17,10 @@ AControlUnit::AControlUnit()
 
 	Screen = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Screen"));
 	Screen->SetupAttachment(RootComponent);
+
+	bIsPlaying = false;
+	SequencePointer = 0;
+	SequenceLastTime = 0;
 }
 
 void AControlUnit::AddCommand(const ELogicControlType Command)
@@ -66,6 +72,17 @@ void AControlUnit::CloseNesting()
 {
 	if (CurrentLayer > 0)
 		CurrentLayer--;
+}
+
+void AControlUnit::PlaySequence()
+{
+	if (Commands.Num() == 0) return;
+
+	UAutomatica::SetControlUnitPlaying(this, true);
+	
+	SequencePointer = -1;
+	SequenceLastTime = UGameplayStatics::GetTimeSeconds(this);
+	bIsPlaying = true;
 }
 
 void AControlUnit::OnConstruction(const FTransform& Transform)
@@ -145,4 +162,30 @@ void AControlUnit::Tick(const float DeltaTime)
 	Super::Tick(DeltaTime);
 	int Index = 0;
 	HandleLayer(0, Index, ScreenPadding);
+	
+	if (bIsPlaying)
+	{
+		double Time = UGameplayStatics::GetTimeSeconds(this);
+		if (Time >= SequenceLastTime + SequenceTickTime)
+		{
+			++SequencePointer;
+
+			int CmdNum = Commands.Num();
+
+			if (SequencePointer >= CmdNum)
+			{
+				UAutomatica::SetControlUnitPlaying(this, false);
+				bIsPlaying = false;
+			} else
+			{
+				UAutomatica::SendLogicCommand(this, ChannelOut, Commands[SequencePointer]->GetCommand());
+				GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, UEnum::GetValueAsString(Commands[SequencePointer]->GetCommand()));
+
+				if (SequencePointer >= (CmdNum - 1))
+					SequenceLastTime = Time + 2;
+				else
+					SequenceLastTime = Time;
+			}
+		}
+	}
 }

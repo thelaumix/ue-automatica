@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameProgress.h"
 #include "Engine/GameInstance.h"
+#include "Logic/ControlUnit.h"
 #include "Logic/LogicActor.h"
 #include "CAutomatica.generated.h"
 
@@ -70,10 +71,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Automatica", meta=(WorldContext="Outer"))
 	static void SetInteractionEnabled(const UObject* Outer, bool bEnabled);
+
+	static void SetControlUnitPlaying(AControlUnit* Unit, bool bPlaying);
 	
 private:
+	static void PlayEnableSound(UAutomatica* A);
 	UPROPERTY() UGameProgress* Saved;
 	UPROPERTY() TArray<ALogicActor*> RegisteredLogicNetworkActors;
+	UPROPERTY() TArray<AControlUnit*> RunningControlUnits;
 
 	UPROPERTY() bool bInteractionEnabled;
 };

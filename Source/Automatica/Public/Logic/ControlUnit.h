@@ -28,6 +28,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Control Unit")
 	void CloseNesting();
 
+	/** Starts sequence playback */
+	void PlaySequence();
+
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
@@ -45,6 +48,9 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category="Debug", DisplayName="Current Layer")
 	uint8 CurrentLayer = 0;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Control Unit")
+	double SequenceTickTime = 0.6;
 
 	UPROPERTY(EditDefaultsOnly, Category="Control Unit|Construction", meta=(ClampMin=0, UIMin=0))
 	float ScreenMeshWidth = 30;
@@ -64,4 +70,8 @@ private:
 	UPROPERTY() TArray<AControlUnitIcon*> CommandChildBuffer;
 	UPROPERTY() TArray<int> ContainerIndexStack;
 	UPROPERTY(VisibleInstanceOnly, Category="Debug", DisplayName="Command Index Pointer") int CommandIndexPtr = -1;
+
+	UPROPERTY() bool bIsPlaying;
+	UPROPERTY() int SequencePointer;
+	UPROPERTY() double SequenceLastTime;
 };

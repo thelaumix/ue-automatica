@@ -65,6 +65,7 @@ void AControlButton::Press()
 			EventToPlay = BtSoundLo;
 			break;
 		case RunSequence:
+			Unit->PlaySequence();
 			break;
 		default: break;;
 		}
