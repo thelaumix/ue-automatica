@@ -14,9 +14,12 @@ class AUTOMATICA_API UHmdHalfCameraComponent : public UCameraComponent
 {
 	GENERATED_BODY()
 
+	UHmdHalfCameraComponent();
+
 	virtual void HandleXRCamera() override;
 
 public:
 
-	float ZOffset = 88;
+	UPROPERTY(EditDefaultsOnly)
+	float ZOffset;
 };

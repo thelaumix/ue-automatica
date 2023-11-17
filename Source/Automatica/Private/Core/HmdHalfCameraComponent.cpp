@@ -6,6 +6,11 @@
 #include "IXRCamera.h"
 #include "IXRTrackingSystem.h"
 
+UHmdHalfCameraComponent::UHmdHalfCameraComponent()
+{
+	ZOffset = 88;
+}
+
 void UHmdHalfCameraComponent::HandleXRCamera()
 {
 	IXRTrackingSystem* XRSystem = GEngine->XRSystem.Get();

@@ -40,6 +40,10 @@
 				"Linux",
 				"Android"
 			]
+		},
+		{
+			"Name": "FMODStudio",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

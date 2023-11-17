@@ -17,6 +17,9 @@ public:
 	// Sets default values for this component's properties
 	UInteractionCatcher();
 
+	UFUNCTION(BlueprintCallable, Category="Logic|Interaction")
+	void TriggerPressOnCatchedButton();
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

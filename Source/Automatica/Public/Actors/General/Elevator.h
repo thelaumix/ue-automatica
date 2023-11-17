@@ -3,8 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FMODAudioComponent.h"
+#include "FMODEvent.h"
 #include "GameFramework/Actor.h"
 #include "Elevator.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FElevatorMovementEvent_d);
 
 /**  */
 UCLASS()
@@ -52,11 +56,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Elevator")
 	void ApproachFloor(int FloorIndex);
 
+	UPROPERTY(BlueprintAssignable, Category = "Automatica|Elevator")
+	FElevatorMovementEvent_d OnElevatorStop;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Automatica|Elevator")
+	FElevatorMovementEvent_d OnElevatorStart;
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY(EditDefaultsOnly)
+	UFMODEvent* ElevatorSound;
 
 private:
 	float StartingZPosition;
 	float TargetZPosition;
+
+	UPROPERTY()
+	UFMODAudioComponent* ElevatorSoundInstance;
 };

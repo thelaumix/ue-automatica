@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ISourceControlProvider.h"
 #include "Engine/DataAsset.h"
 #include "ControlCommandSettings.generated.h"
 

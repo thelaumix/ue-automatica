@@ -64,17 +64,4 @@ private:
 	UPROPERTY() TArray<AControlUnitIcon*> CommandChildBuffer;
 	UPROPERTY() TArray<int> ContainerIndexStack;
 	UPROPERTY(VisibleInstanceOnly, Category="Debug", DisplayName="Command Index Pointer") int CommandIndexPtr = -1;
-
-protected:
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(EditInstanceOnly, Category="Debug", DisplayName="Command to add")
-	TEnumAsByte<ELogicControlType> _D_CommandToAdd;
-
-	UFUNCTION(CallInEditor, Category="Debug", DisplayName="Add")
-	void _D_AddCommand();
-	UFUNCTION(CallInEditor, Category="Debug", DisplayName="Backspace")
-	void _D_Backspace();
-	UFUNCTION(CallInEditor, Category="Debug", DisplayName="End Nesting (if active)")
-	void _D_EndNested();
-#endif
 };

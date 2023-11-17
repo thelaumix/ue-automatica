@@ -24,7 +24,7 @@ AControlButton::AControlButton()
 	CFace = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Face"));
 	CText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("Text"));
 	CIcon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Icon"));
-
+	
 	CFrame->SetupAttachment(RootComponent);
 	CFace->SetupAttachment(RootComponent);
 	CText->SetupAttachment(RootComponent);
@@ -46,14 +46,17 @@ void AControlButton::Press()
 	if (Unit == nullptr || !PPressed.IsIdle()) return;
 
 	PPressed.Set(1 - PPressed.GetTarget());
+	SetActorTickEnabled(true);
 
 	switch (Setup.Type)
 	{
 	case Command:
-		
+		Unit->AddCommand(Setup.Command);
+		break;
+	case Function:
+		Unit->Backspace();
 		break;
 	}
-	Unit->AddCommand(Setup.Command);
 }
 
 void AControlButton::SetButtonSetup(const FControlButtonSetup ButtonSetup)
@@ -82,19 +85,17 @@ void AControlButton::BeginPlay()
 
 	PPressed.OverrideValue(0);
 	PPressed.SetInterpolator(AnimationCurve);
-	PPressed.SetTime(0.2);
+	PPressed.SetTime(0.1);
+	
+	CFrame->SetCustomDepthStencilValue(0);
+	CFace->SetCustomDepthStencilValue(0);
 	
 	CText->SetVisibility(false);
-	if (ButtonOverlayInstance)
-		ButtonOverlayInstance->SetScalarParameterValue("Visible", 0);
 }
 
 void AControlButton::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-
-	if (ButtonOverlay)
-		ButtonOverlayInstance = UMaterialInstanceDynamic::Create(ButtonOverlay, this);
 
 	if (PlaneMesh)
 		CIcon->SetStaticMesh(PlaneMesh);
@@ -103,6 +104,11 @@ void AControlButton::OnConstruction(const FTransform& Transform)
 	float IconScale = 1;
 	float Rotate = 0;
 	bIsToggleMode = false;
+
+	float FaceMatColorMultiplier = 1;
+
+	FLinearColor FaceMatColor = FColor::White;
+	
 	switch(Setup.Type)
 	{
 	case Command:
@@ -124,12 +130,26 @@ void AControlButton::OnConstruction(const FTransform& Transform)
 			CText->SetText(NSLOCTEXT("Button", "Unknown", "Unbekannt"));
 		}
 		break;
-	case Backspace:
+	case Function:
 		Scale = 0.7;
-		CIcon->SetMaterial(0, MatIconBackspace);
 		ConstructShape(Squared);
 		Rotate = 45;
-		CText->SetText(NSLOCTEXT("Button", "Backspace", "Löschen"));
+
+		switch (Setup.Function)
+		{
+		case Backspace:
+			CIcon->SetMaterial(0, MatIconBackspace);
+			CText->SetText(NSLOCTEXT("Button", "Backspace", "Löschen"));
+			FaceMatColor = FColor::Red;
+			break;
+		case RunSequence:
+			CIcon->SetMaterial(0, MatIconRunSequence);
+			CText->SetText(NSLOCTEXT("Button", "RunSequence", "Ausführen"));
+			FaceMatColor = FColor::Green;
+			break;
+		}
+		
+		FaceMatColorMultiplier = 2;
 		break;
 	case CounterModifier:
 		Scale = 0.3;
@@ -144,13 +164,16 @@ void AControlButton::OnConstruction(const FTransform& Transform)
 		break;
 	}
 	
+	FaceMatInstance->SetScalarParameterValue("Color Multiplier", FaceMatColorMultiplier);
+	FaceMatInstance->SetVectorParameterValue("Color", FaceMatColor);
+	
 	Scale *= ScaleModifier;
 
 	CText->SetWorldSize(10);
 	CText->TextRenderColor = FColor::White;
 	CText->HorizontalAlignment = EHTA_Center;
 	CText->VerticalAlignment = EVRTA_TextBottom;
-	CText->SetRelativeLocation(FVector(0, -100 * Scale, 20));
+	CText->SetRelativeLocation(FVector(0, -7 * Scale, 20));
 	CText->SetRelativeRotation(FRotator(30, 90, 0));
 
 	if (TextMaterial)
@@ -165,9 +188,14 @@ void AControlButton::OnConstruction(const FTransform& Transform)
 	CFrame->SetRelativeRotation(FRotator(0, Rotate, 0));
 	CFace->SetRelativeScale3D(Scale3D);
 	CFace->SetRelativeRotation(FRotator(0, Rotate, 0));
+	
+	CFrame->SetMobility(EComponentMobility::Movable);
+	CFace->SetMobility(EComponentMobility::Movable);
+	CIcon->SetMobility(EComponentMobility::Movable);
+	CText->SetMobility(EComponentMobility::Movable);
 }
 
-void AControlButton::ConstructShape(const EControlButtonShape Shape) const
+void AControlButton::ConstructShape(const EControlButtonShape Shape)
 {
 	if (Shape == Round)
 	{
@@ -177,7 +205,17 @@ void AControlButton::ConstructShape(const EControlButtonShape Shape) const
 		if (FrameMeshSquare) CFrame->SetStaticMesh(FrameMeshSquare);
 		if (FaceMeshSquare) CFace->SetStaticMesh(FaceMeshSquare);
 	}
-	CFrame->SetOverlayMaterial(ButtonOverlayInstance);
+
+	CFrame->SetRenderCustomDepth(true);
+	CFace->SetRenderCustomDepth(true);
+	CFrame->SetCustomDepthStencilValue(0);
+	CFace->SetCustomDepthStencilValue(0);
+
+	if (CFaceMaterial)
+	{
+		FaceMatInstance = UMaterialInstanceDynamic::Create(CFaceMaterial, CFace);
+		CFace->SetMaterial(0, FaceMatInstance);
+	}
 }
 
 void AControlButton::HandleInteractionCatcherUpdate() const
@@ -185,8 +223,11 @@ void AControlButton::HandleInteractionCatcherUpdate() const
 	const bool bIsActive = CatchersActive.Num() > 0;
 
 	CText->SetVisibility(bIsActive);
-	if (ButtonOverlayInstance)
-		ButtonOverlayInstance->SetScalarParameterValue("Visible", bIsActive);
+	CFrame->SetCustomDepthStencilValue(bIsActive);
+	CFace->SetCustomDepthStencilValue(bIsActive);
+
+	if (FaceMatInstance)
+		FaceMatInstance->SetScalarParameterValue("Hover", bIsActive);
 }
 
 void AControlButton::Tick(const float DeltaTime)
@@ -196,16 +237,20 @@ void AControlButton::Tick(const float DeltaTime)
 	double Value;
 	if (!PPressed.Get(Value))
 	{
-		if (Value == 1 && !bIsToggleMode)
+		
+		if (Value >= 1 && !bIsToggleMode)
 		{
 			PPressed.Set(0);
 		} else
 		{
 			SetActorTickEnabled(false);
-			return;	
 		}
 	}
 
-	ButtonOverlayInstance->SetScalarParameterValue("Pressed", Value);
+	const auto Scale = CFace->GetRelativeScale3D();
+	CFace->SetRelativeLocation(FVector(0,0, -10 * Value * Scale.X));
+
+	if (FaceMatInstance)
+		FaceMatInstance->SetScalarParameterValue("Pressed", Value);
 }
 

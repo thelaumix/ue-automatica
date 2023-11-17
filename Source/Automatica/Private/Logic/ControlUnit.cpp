@@ -146,22 +146,3 @@ void AControlUnit::Tick(const float DeltaTime)
 	int Index = 0;
 	HandleLayer(0, Index, ScreenPadding);
 }
-
-
-
-#if WITH_EDITORONLY_DATA
-void AControlUnit::_D_AddCommand()
-{
-	AddCommand(_D_CommandToAdd);
-}
-
-void AControlUnit::_D_Backspace()
-{
-	Backspace();
-}
-
-void AControlUnit::_D_EndNested()
-{
-	CloseNesting();
-}
-#endif

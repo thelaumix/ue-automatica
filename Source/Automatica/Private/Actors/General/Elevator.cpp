@@ -16,6 +16,8 @@ AElevator::AElevator(): StartingZPosition(0), TargetZPosition(0)
 	MinTravelSpeed = 50;
 	MaxTravelSpeed = 200;
 	ApproachingOffset = -310;
+
+	ElevatorSoundInstance = CreateDefaultSubobject<UFMODAudioComponent>(TEXT("Sound"));
 }
 
 void AElevator::TravelUp()
@@ -32,12 +34,17 @@ void AElevator::TravelTo(const float ZPosition)
 {
 	StartingZPosition = GetActorLocation().Z;
 	TargetZPosition = ZPosition;
-	SetActorTickEnabled(true);
+	if (!IsActorTickEnabled())
+	{
+		OnElevatorStart.Broadcast();
+		SetActorTickEnabled(true);
+	}
 }
 
 void AElevator::TravelToFloor(const int FloorIndex)
 {
 	TravelTo(FloorHeight * FloorIndex);
+	ElevatorSoundInstance->SetParameter("ElevatorSpeed", 0.1);
 }
 
 void AElevator::ApproachFloor(const int FloorIndex)
@@ -58,8 +65,24 @@ void AElevator::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (ElevatorSound)
+	{
+		ElevatorSoundInstance->SetEvent(ElevatorSound);
+		ElevatorSoundInstance->Play();
+	}
+
 	StartingZPosition = GetActorLocation().Z;
 	TargetZPosition = GetActorLocation().Z;
+}
+
+void AElevator::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	if (ElevatorSound)
+	{
+		ElevatorSoundInstance->Stop();
+		ElevatorSoundInstance->Release();
+	}
 }
 
 // Called every frame
@@ -81,6 +104,9 @@ void AElevator::Tick(const float DeltaTime)
 
 	const float Speed = FMath::Lerp(MinTravelSpeed, MaxTravelSpeed, AmountFinal);
 
+	if (ElevatorSound)
+		ElevatorSoundInstance->SetParameter("ElevatorSpeed", AmountStart < 0.1 ? 0.1 : FMath::RoundToFloat(AmountFinal * 10) / 10);
+
 	float NextActualZDistance = DeltaTime * Speed;
 	// If the current frame's moving offset is greater than the total offset, clamp it to fit
 	if (NextActualZDistance > OffsetEnd)
@@ -92,6 +118,9 @@ void AElevator::Tick(const float DeltaTime)
 	// If the target has arrived, close the case and shut down the systems.
 	// Or simply stop the elevator tick...
 	if (CurrentPosition.Z == TargetZPosition)
+	{
 		SetActorTickEnabled(false);
+		OnElevatorStop.Broadcast();
+	}
 }
 

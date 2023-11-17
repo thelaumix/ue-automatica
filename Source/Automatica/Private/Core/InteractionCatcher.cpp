@@ -12,6 +12,12 @@ UInteractionCatcher::UInteractionCatcher()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+void UInteractionCatcher::TriggerPressOnCatchedButton()
+{
+	if (CurrentlyTargetedButton)
+		CurrentlyTargetedButton->Press();
+}
+
 
 // Called when the game starts
 void UInteractionCatcher::BeginPlay()
@@ -30,7 +36,7 @@ void UInteractionCatcher::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	TArray<FHitResult> Hits;
-	GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation(), FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(40));
+	GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation(), FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(20));
 
 	AControlButton* ClosestButton = nullptr;
 	double ClosestDistance = INFINITY;

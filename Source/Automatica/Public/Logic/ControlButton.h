@@ -26,7 +26,7 @@ enum EControlButtonType: uint8
 {
 	Command			= 0,
 	CounterModifier	= 1,
-	Backspace		= 2
+	Function		= 2
 };
 
 /** Add / Remove mode for counter modifier */
@@ -35,6 +35,14 @@ enum EControlButtonCounterModifier: uint8
 {
 	Add			= 0,
 	Subtract	= 1
+};
+
+/** Function type */
+UENUM(BlueprintType)
+enum EControlButtonFunction: uint8
+{
+	Backspace	= 0,
+	RunSequence	= 1
 };
 
 /** Button options for building */
@@ -60,6 +68,10 @@ struct FControlButtonSetup
 	/** Button holding the command the counter shall be modified for */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button", meta=(EditCondition="Type == 1", EditConditionHides = true))
 	AControlButton* RelatedCounterButton;
+
+	/** Button holding the command the counter shall be modified for */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button", meta=(EditCondition="Type == 2", EditConditionHides = true))
+	TEnumAsByte<EControlButtonFunction> Function;
 };
 
 UCLASS()
@@ -85,7 +97,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-	void ConstructShape(EControlButtonShape Shape) const;
+	void ConstructShape(EControlButtonShape Shape);
 
 	void HandleInteractionCatcherUpdate() const;
 
@@ -126,16 +138,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
 	UMaterialInterface* MatIconBackspace;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
-	UMaterialInterface* ButtonOverlay;
+	UMaterialInterface* MatIconRunSequence;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
 	UMaterialInterface* TextMaterial;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
+	UMaterialInterface* CFaceMaterial;
 
 private:
 	UPROPERTY() UStaticMeshComponent* CFrame;
 	UPROPERTY() UStaticMeshComponent* CFace;
 	UPROPERTY() UStaticMeshComponent* CIcon;
 	UPROPERTY() UTextRenderComponent* CText;
-	UPROPERTY() UMaterialInstanceDynamic* ButtonOverlayInstance;
+	UPROPERTY() UMaterialInstanceDynamic* FaceMatInstance;
 	UPROPERTY() bool bIsToggleMode;
 
 	UPROPERTY() TArray<UInteractionCatcher*> CatchersActive;
