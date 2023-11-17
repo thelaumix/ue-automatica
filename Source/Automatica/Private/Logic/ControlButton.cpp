@@ -2,6 +2,8 @@
 
 
 #include "Logic/ControlButton.h"
+
+#include "FMODBlueprintStatics.h"
 #include "Core/CAutomatica.h"
 
 
@@ -48,15 +50,29 @@ void AControlButton::Press()
 	PPressed.Set(1 - PPressed.GetTarget());
 	SetActorTickEnabled(true);
 
+	UFMODEvent* EventToPlay = BtSoundHi;
+
 	switch (Setup.Type)
 	{
 	case Command:
 		Unit->AddCommand(Setup.Command);
 		break;
 	case Function:
-		Unit->Backspace();
+		switch (Setup.Function)
+		{
+		case Backspace:
+			Unit->Backspace();
+			EventToPlay = BtSoundLo;
+			break;
+		case RunSequence:
+			break;
+		default: break;;
+		}
 		break;
+	default: break;;
 	}
+
+	UFMODBlueprintStatics::PlayEventAttached(EventToPlay, RootComponent, NAME_None, FVector::Zero(), EAttachLocation::SnapToTarget, true, true, true);
 }
 
 void AControlButton::SetButtonSetup(const FControlButtonSetup ButtonSetup)

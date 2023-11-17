@@ -2,6 +2,9 @@
 
 
 #include "Core/CAutomatica.h"
+
+#include "FMODBlueprintStatics.h"
+#include "FMODEvent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Logging/StructuredLog.h"
 
@@ -125,4 +128,33 @@ bool UAutomatica::Get(const UObject* Outer, UAutomatica*& Instance)
 {
 	Instance = Get(Outer);
 	return Instance != nullptr;
+}
+
+UAutomatica* UAutomatica::BP_GetAutomaticaInstance(const UObject* Outer)
+{
+	return Get(Outer);
+}
+
+bool UAutomatica::IsInteractionEnabled(const UObject* Outer)
+{
+	UAutomatica* A;
+	if (!Get(Outer, A))
+		return false;
+
+	return A->bInteractionEnabled;
+}
+
+void UAutomatica::SetInteractionEnabled(const UObject* Outer, const bool bEnabled)
+{
+	UAutomatica* A;
+	if (!Get(Outer, A))
+		return;
+
+	if (A->bInteractionEnabled != bEnabled && bEnabled)
+	{
+		UFMODEvent* Event = LoadObject<UFMODEvent>(A, TEXT("/Game/FMOD/Events/Glob/Unlock_Actions.Unlock_Actions"));
+		UFMODBlueprintStatics::PlayEvent2D(A, Event, true);
+	}
+
+	A->bInteractionEnabled = bEnabled;
 }

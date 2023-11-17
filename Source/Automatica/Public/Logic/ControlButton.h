@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ControlUnit.h"
+#include "FMODEvent.h"
 #include "LogicActor.h"
 #include "Components/TextRenderComponent.h"
 //#include "Core/InteractionCatcher.h"
@@ -143,6 +144,11 @@ protected:
 	UMaterialInterface* TextMaterial;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Materials")
 	UMaterialInterface* CFaceMaterial;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Audio")
+	UFMODEvent* BtSoundHi;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Audio")
+	UFMODEvent* BtSoundLo;
 
 private:
 	UPROPERTY() UStaticMeshComponent* CFrame;

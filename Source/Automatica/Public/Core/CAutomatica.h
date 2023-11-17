@@ -10,6 +10,8 @@
 
 #define SAVE_NAME "aprog"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FElevatorMovementEvent_d);
+
 DECLARE_LOG_CATEGORY_EXTERN(AutomaticaCore, Log, All);
 
 /**
@@ -53,8 +55,25 @@ public:
 	
 	/** Retreives game instance pointer driven */
 	static bool Get(const UObject* Outer, UAutomatica*& Instance);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Automatica", DisplayName="Automatica", meta=(WorldContext="Outer"))
+	static UAutomatica* BP_GetAutomaticaInstance(const UObject* Outer);
+
+	UPROPERTY(BlueprintAssignable, Category = "Automatica|Elevator")
+	FElevatorMovementEvent_d OnElevatorStop;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Automatica|Elevator")
+	FElevatorMovementEvent_d OnElevatorStart;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Automatica", meta=(WorldContext="Outer"))
+	static bool IsInteractionEnabled(const UObject* Outer);
+
+	UFUNCTION(BlueprintCallable, Category="Automatica", meta=(WorldContext="Outer"))
+	static void SetInteractionEnabled(const UObject* Outer, bool bEnabled);
 	
 private:
 	UPROPERTY() UGameProgress* Saved;
 	UPROPERTY() TArray<ALogicActor*> RegisteredLogicNetworkActors;
+
+	UPROPERTY() bool bInteractionEnabled;
 };

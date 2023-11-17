@@ -3,6 +3,8 @@
 
 #include "Core/InteractionCatcher.h"
 
+#include "Core/CAutomatica.h"
+
 
 // Sets default values for this component's properties
 UInteractionCatcher::UInteractionCatcher()
@@ -34,25 +36,29 @@ void UInteractionCatcher::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	TArray<FHitResult> Hits;
-	GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation(), FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(20));
-
+	
 	AControlButton* ClosestButton = nullptr;
 	double ClosestDistance = INFINITY;
-	
-	for(auto Hit: Hits)
+
+	if (UAutomatica::IsInteractionEnabled(this))
 	{
-		const auto Button = Cast<AControlButton>(Hit.GetActor());
-		if (Button == nullptr) continue;
+		TArray<FHitResult> Hits;
+		GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation(), FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(20));
 
-		const double ButtonDistance = FVector::Distance(Button->GetActorLocation(), GetComponentLocation());
+	
+		for(auto Hit: Hits)
+		{
+			const auto Button = Cast<AControlButton>(Hit.GetActor());
+			if (Button == nullptr) continue;
 
-		// Ignore if is farther away
-		if (ClosestDistance <= ButtonDistance) continue;
+			const double ButtonDistance = FVector::Distance(Button->GetActorLocation(), GetComponentLocation());
 
-		ClosestDistance = ButtonDistance;
-		ClosestButton = Button;
+			// Ignore if is farther away
+			if (ClosestDistance <= ButtonDistance) continue;
+
+			ClosestDistance = ButtonDistance;
+			ClosestButton = Button;
+		}
 	}
 
 	if (CurrentlyTargetedButton != ClosestButton)

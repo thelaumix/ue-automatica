@@ -3,6 +3,10 @@
 
 #include "../../../Public/Actors/General/Elevator.h"
 
+#include "EngineUtils.h"
+#include "Core/CAutomatica.h"
+#include "Kismet/GameplayStatics.h"
+
 
 // Sets default values
 AElevator::AElevator(): StartingZPosition(0), TargetZPosition(0)
@@ -34,9 +38,10 @@ void AElevator::TravelTo(const float ZPosition)
 {
 	StartingZPosition = GetActorLocation().Z;
 	TargetZPosition = ZPosition;
+	UAutomatica::SetInteractionEnabled(this, false);
 	if (!IsActorTickEnabled())
 	{
-		OnElevatorStart.Broadcast();
+		//UAutomatica::Get(this)->OnElevatorStart.Broadcast();
 		SetActorTickEnabled(true);
 	}
 }
@@ -58,6 +63,18 @@ void AElevator::ApproachFloor(const int FloorIndex)
 	SetActorLocation(Location);
 
 	TravelTo(TargetingHeight);
+}
+
+AElevator* AElevator::BP_GetElevator(const UObject* Outer)
+{
+	TArray<AActor*> Elevators;
+	UGameplayStatics::GetAllActorsOfClass(Outer, AElevator::StaticClass(), Elevators);
+	for(auto Elev: Elevators)
+	{
+		return Cast<AElevator>(Elev);
+	}
+
+	return nullptr;
 }
 
 // Called when the game starts or when spawned
@@ -120,7 +137,7 @@ void AElevator::Tick(const float DeltaTime)
 	if (CurrentPosition.Z == TargetZPosition)
 	{
 		SetActorTickEnabled(false);
-		OnElevatorStop.Broadcast();
+		UAutomatica::Get(this)->OnElevatorStop.Broadcast();
 	}
 }
 

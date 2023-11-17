@@ -8,8 +8,6 @@
 #include "GameFramework/Actor.h"
 #include "Elevator.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FElevatorMovementEvent_d);
-
 /**  */
 UCLASS()
 class AUTOMATICA_API AElevator : public AActor
@@ -56,11 +54,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Elevator")
 	void ApproachFloor(int FloorIndex);
 
-	UPROPERTY(BlueprintAssignable, Category = "Automatica|Elevator")
-	FElevatorMovementEvent_d OnElevatorStop;
-	
-	UPROPERTY(BlueprintAssignable, Category = "Automatica|Elevator")
-	FElevatorMovementEvent_d OnElevatorStart;
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Automatica", DisplayName="GetElevator", meta=(WorldContext="Outer"))
+	static AElevator* BP_GetElevator(const UObject* Outer);
 
 protected:
 	virtual void BeginPlay() override;
