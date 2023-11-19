@@ -104,6 +104,18 @@ void AControlUnitIcon::InitSelfDestruct()
 	bToDelete = true;
 }
 
+void AControlUnitIcon::SetVisibility(float VisibilityAmount) const
+{
+	if (IconMat)
+		IconMat->SetScalarParameterValue("FadeOut", VisibilityAmount);
+}
+
+void AControlUnitIcon::SetColor(const FLinearColor Color) const
+{
+	if (IconMat)
+		IconMat->SetVectorParameterValue("Color", Color);
+}
+
 void AControlUnitIcon::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);

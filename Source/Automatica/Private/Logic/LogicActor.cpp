@@ -23,7 +23,7 @@ void ALogicActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ALogicActor::SendCommand(ELogicControlType Command)
+void ALogicActor::SendCommand(const ELogicControlType Command)
 {
-	UAutomatica::SendLogicCommand(this, ChannelOut, Command);
+	UAutomatica::GSendLogicCommand(this, Command, ChannelOut);
 }

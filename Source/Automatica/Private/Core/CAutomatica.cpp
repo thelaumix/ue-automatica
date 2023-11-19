@@ -5,8 +5,10 @@
 
 #include "FMODBlueprintStatics.h"
 #include "FMODEvent.h"
+#include "Actors/General/Elevator.h"
 #include "Kismet/GameplayStatics.h"
 #include "Logging/StructuredLog.h"
+#include "Logic/RasterCharacter.h"
 
 DEFINE_LOG_CATEGORY(AutomaticaCore);
 
@@ -45,6 +47,24 @@ bool UAutomatica::WriteProgress(UObject* Outer)
 	return UGameplayStatics::SaveGameToSlot(A->Saved, SAVE_NAME, 0);
 }
 
+FLinearColor UAutomatica::GetChannelColor(int32 Channel)
+{
+	if (Channel == Red)
+		return FLinearColor(1, 0, 0.21374);
+	if (Channel == Green)
+		return FLinearColor(0, 0.739583, 0.1457);
+	if (Channel == Blue)
+		return FLinearColor(0, 0.078477, 0.739583);
+	if (Channel == (Blue | Red))
+		return FLinearColor(0.588911, 0, 0.739583);
+	if (Channel == (Red | Green))
+		return FLinearColor(0.833333, 0.514311, 0);
+	if (Channel == (Blue | Green))
+		return FLinearColor(0, 0.833333, 0.750738);
+
+	return FLinearColor(1, 1, 1);
+}
+
 bool UAutomatica::BindLogicActor(ALogicActor* LogicActor)
 {
 	UAutomatica* A;
@@ -53,7 +73,12 @@ bool UAutomatica::BindLogicActor(ALogicActor* LogicActor)
 
 	if (A->RegisteredLogicNetworkActors.Contains(LogicActor))
 		return false;
-	A->RegisteredLogicNetworkActors.Add(LogicActor);
+
+	// Put all characters at the end
+	if (LogicActor->IsA(ARasterCharacter::StaticClass()))
+		A->RegisteredLogicNetworkActors.Add(LogicActor);
+	else
+		A->RegisteredLogicNetworkActors.Insert(LogicActor, 0);
 	return true;
 }
 
@@ -69,13 +94,22 @@ bool UAutomatica::ReleaseLogicActor(ALogicActor* LogicActor)
 	return true;
 }
 
-bool UAutomatica::SendLogicCommand(ALogicActor* Sender, int32 Channel, ELogicControlType Command)
+bool UAutomatica::GSendLogicCommand(const ALogicActor* Sender, const ELogicControlType Command, const int32 Channel)
 {
 	UAutomatica* A;
 	if (!Get(Sender, A))
 		return false;
 
-	for(auto Actor: A->RegisteredLogicNetworkActors)
+	A->SendLogicCommand(Command, Channel);
+
+	return true;
+}
+
+bool UAutomatica::SendLogicCommand(const ELogicControlType Command, const int32 Channel)
+{
+	if (RegisteredLogicNetworkActors.Num() == 0) return false;
+	
+	for(auto Actor: RegisteredLogicNetworkActors)
 	{
 		// If target actor does not accept input, skip it
 		if (!Actor->bUseChannelBusInput)
@@ -91,6 +125,7 @@ bool UAutomatica::SendLogicCommand(ALogicActor* Sender, int32 Channel, ELogicCon
 
 	return true;
 }
+
 
 template <typename LogicActorType>
 TArray<LogicActorType*> UAutomatica::GetLogicActorsOfType(ALogicActor* Requester)
@@ -144,10 +179,41 @@ bool UAutomatica::IsInteractionEnabled(const UObject* Outer)
 	return A->bInteractionEnabled && A->RunningControlUnits.Num() == 0;
 }
 
-void UAutomatica::PlayEnableSound(UAutomatica* A)
+void UAutomatica::PlayEnableSound(UAutomatica* A, const bool bWasReset)
 {
-	UFMODEvent* Event = LoadObject<UFMODEvent>(A, TEXT("/Game/FMOD/Events/Glob/Unlock_Actions.Unlock_Actions"));
-	UFMODBlueprintStatics::PlayEvent2D(A, Event, true);
+	// Reset all
+	int NotInGoal = 0;
+	if (bWasReset)
+	{
+		for(auto Actor: A->RegisteredLogicNetworkActors)
+		{
+			ARasterCharacter* Char = Cast<ARasterCharacter>(Actor);
+			if (Char && !Char->IsInGoal())
+				NotInGoal++;
+		}
+	}
+
+	if (!bWasReset || NotInGoal > 0)
+	{
+		UFMODEvent* Event = LoadObject<UFMODEvent>(A, TEXT("/Game/FMOD/Events/Glob/Unlock_Actions.Unlock_Actions"));
+		UFMODBlueprintStatics::PlayEvent2D(A, Event, true);
+		
+		for(auto Actor: A->RegisteredLogicNetworkActors)
+		{
+			Actor->LogicReset();
+		}
+
+		if (bWasReset)
+			A->OnSequenceEnd.Broadcast(false);
+	} else if (bWasReset)
+	{
+		// RE-ENABLE when in goal
+		SetInteractionEnabled(A, false);
+		UFMODEvent* Event = LoadObject<UFMODEvent>(A, TEXT("/Game/FMOD/Events/Glob/Success.Success"));
+		UFMODBlueprintStatics::PlayEvent2D(A, Event, true);
+		// Handle goaling
+		A->OnSequenceEnd.Broadcast(true);
+	}
 }
 
 void UAutomatica::SetInteractionEnabled(const UObject* Outer, const bool bEnabled)
@@ -180,5 +246,15 @@ void UAutomatica::SetControlUnitPlaying(AControlUnit* Unit, const bool bPlaying)
 	const bool bIntEnabledAfter = IsInteractionEnabled(Unit);
 
 	if (bIntEnabledAfter != bIntEnabledBefore && bIntEnabledAfter)
-		PlayEnableSound(A);
+		PlayEnableSound(A, true);
+}
+
+void UAutomatica::Elev_TravelToFloor(int Floor)
+{
+	AElevator::BP_GetElevator(this)->TravelToFloor(Floor);
+}
+
+void UAutomatica::Elev_ApproachFloor(int Floor)
+{
+	AElevator::BP_GetElevator(this)->ApproachFloor(Floor);
 }

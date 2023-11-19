@@ -5,15 +5,7 @@
 
 #include "FMODBlueprintStatics.h"
 #include "Core/CAutomatica.h"
-
-
-FControlButtonSetup::FControlButtonSetup()
-{
-	Command = Move_Forward;
-	Modifier = Add;
-	Type = EControlButtonType::Command;
-	RelatedCounterButton = nullptr;
-}
+#include "Kismet/GameplayStatics.h"
 
 AControlButton::AControlButton()
 {
@@ -45,32 +37,38 @@ AControlButton::AControlButton()
 
 void AControlButton::Press()
 {
-	if (Unit == nullptr || !PPressed.IsIdle()) return;
+	if (!PPressed.IsIdle()) return;
+
+	OnPressed.Broadcast();
 
 	PPressed.Set(1 - PPressed.GetTarget());
 	SetActorTickEnabled(true);
 
 	UFMODEvent* EventToPlay = BtSoundHi;
 
-	switch (Setup.Type)
+	if (Unit)
 	{
-	case Command:
-		Unit->AddCommand(Setup.Command);
-		break;
-	case Function:
-		switch (Setup.Function)
+		switch (Setup.Type)
 		{
+		case Command:
+			if (!Unit->AddCommand(Setup.Command))
+				EventToPlay = BtSoundFail;
+			break;
+		case Function:
+			switch (Setup.Function)
+			{
 		case Backspace:
 			Unit->Backspace();
-			EventToPlay = BtSoundLo;
-			break;
+				EventToPlay = BtSoundLo;
+				break;
 		case RunSequence:
-			Unit->PlaySequence();
+			PlaySequences();
+				break;
+		default: break;
+			}
 			break;
 		default: break;;
 		}
-		break;
-	default: break;;
 	}
 
 	UFMODBlueprintStatics::PlayEventAttached(EventToPlay, RootComponent, NAME_None, FVector::Zero(), EAttachLocation::SnapToTarget, true, true, true);
@@ -164,6 +162,7 @@ void AControlButton::OnConstruction(const FTransform& Transform)
 			CText->SetText(NSLOCTEXT("Button", "RunSequence", "Ausführen"));
 			FaceMatColor = FColor::Green;
 			break;
+		default: break;
 		}
 		
 		FaceMatColorMultiplier = 2;
@@ -180,9 +179,12 @@ void AControlButton::OnConstruction(const FTransform& Transform)
 		CText->SetText(NSLOCTEXT("Button", "Unknown", "Unbekannt"));
 		break;
 	}
-	
-	FaceMatInstance->SetScalarParameterValue("Color Multiplier", FaceMatColorMultiplier);
-	FaceMatInstance->SetVectorParameterValue("Color", FaceMatColor);
+
+	if (FaceMatInstance)
+	{
+		FaceMatInstance->SetScalarParameterValue("Color Multiplier", FaceMatColorMultiplier);
+		FaceMatInstance->SetVectorParameterValue("Color", FaceMatColor);	
+	}
 	
 	Scale *= ScaleModifier;
 
@@ -269,5 +271,16 @@ void AControlButton::Tick(const float DeltaTime)
 
 	if (FaceMatInstance)
 		FaceMatInstance->SetScalarParameterValue("Pressed", Value);
+}
+
+void AControlButton::PlaySequences()
+{
+	TArray<AActor*> Screens;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AControlUnit::StaticClass(), Screens);
+	for(const auto Actor: Screens)
+	{
+		if (const auto Screen = Cast<AControlUnit>(Actor))
+			Screen->PlaySequence();
+	}
 }
 

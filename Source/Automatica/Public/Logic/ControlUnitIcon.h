@@ -63,6 +63,10 @@ public:
 	/** Initialize self destruct on actor or component */
 	void InitSelfDestruct();
 
+	void SetVisibility(float VisibilityAmount) const;
+
+	void SetColor(FLinearColor Color) const;
+
 	uint8 Layer = 0;
 
 protected:

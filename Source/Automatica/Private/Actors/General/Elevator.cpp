@@ -137,6 +137,7 @@ void AElevator::Tick(const float DeltaTime)
 	if (CurrentPosition.Z == TargetZPosition)
 	{
 		SetActorTickEnabled(false);
+		UAutomatica::SetInteractionEnabled(this, false);
 		UAutomatica::Get(this)->OnElevatorStop.Broadcast();
 	}
 }

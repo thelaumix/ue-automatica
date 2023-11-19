@@ -32,7 +32,7 @@ public:
 	bool bUseChannelBusInput = false;
 
 	/** The channel to send into */
-	UPROPERTY(EditInstanceOnly, Category = "Logic", BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = EControlChannel, EditCondition="bUseChannelBusInput", EditConditionHides=true), DisplayName = "Input Channel")
+	UPROPERTY(EditInstanceOnly, Category = "Logic", BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = "/Script/Automatica.EControlChannel", EditCondition="bUseChannelBusInput", EditConditionHides=true), DisplayName = "Input Channel")
 	int32 ChannelIn = All;
 
 	/** Whether the logic actor can send logic commands */
@@ -40,10 +40,13 @@ public:
 	bool bUseChannelBusOutput = false;
 
 	/** The channel to send into */
-	UPROPERTY(EditInstanceOnly, Category = "Logic", BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = EControlChannel, EditCondition="bUseChannelBusOutput", EditConditionHides=true), DisplayName = "Output Channel")
+	UPROPERTY(EditInstanceOnly, Category = "Logic", BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = "/Script/Automatica.EControlChannel", EditCondition="bUseChannelBusOutput", EditConditionHides=true), DisplayName = "Output Channel")
 	int32 ChannelOut = All;
 
 	void PushCommandToReceive(ELogicControlType Command);
+
+	/** Called once the stage resets */
+	virtual void LogicReset() {}
 
 protected:
 	virtual void BeginPlay() override;

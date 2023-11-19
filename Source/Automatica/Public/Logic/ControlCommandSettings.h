@@ -12,7 +12,7 @@ enum ELogicControlType: uint8
 	Unknown			UMETA(Hidden, DisplayName = "---"),
 	Wrap_Loop,
 	Wrap_Async,
-
+	
 	Move_Forward,
 	Move_Backward,
 	Move_Left,
@@ -23,7 +23,9 @@ enum ELogicControlType: uint8
 	Pick_Up,
 	Pick_Drop,
 	Toggle_On,
-	Toggle_Off
+	Toggle_Off,
+	Toggle,
+	Wait
 };
 
 USTRUCT()

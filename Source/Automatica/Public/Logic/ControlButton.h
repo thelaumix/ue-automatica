@@ -10,6 +10,8 @@
 //#include "Core/InteractionCatcher.h"
 #include "ControlButton.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonPressed_d);
+
 class UInteractionCatcher;
 class AControlButton;
 
@@ -50,9 +52,7 @@ enum EControlButtonFunction: uint8
 USTRUCT(BlueprintType)
 struct FControlButtonSetup
 {
-	GENERATED_BODY()
-
-	FControlButtonSetup();
+    GENERATED_USTRUCT_BODY()
 
 	/** The button's functional type */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Control Button")
@@ -93,6 +93,9 @@ public:
 
 	void InteractSetup_Bind(UInteractionCatcher* Catcher);
 	void InteractSetup_Release(UInteractionCatcher* Catcher);
+
+	UPROPERTY(BlueprintAssignable, Category="Control Button")
+	FButtonPressed_d OnPressed;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -149,6 +152,8 @@ protected:
 	UFMODEvent* BtSoundHi;
 	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Audio")
 	UFMODEvent* BtSoundLo;
+	UPROPERTY(EditDefaultsOnly, Category="Control Button|Setup|Audio")
+	UFMODEvent* BtSoundFail;
 
 private:
 	UPROPERTY() UStaticMeshComponent* CFrame;
@@ -157,6 +162,8 @@ private:
 	UPROPERTY() UTextRenderComponent* CText;
 	UPROPERTY() UMaterialInstanceDynamic* FaceMatInstance;
 	UPROPERTY() bool bIsToggleMode;
+
+	void PlaySequences();
 
 	UPROPERTY() TArray<UInteractionCatcher*> CatchersActive;
 

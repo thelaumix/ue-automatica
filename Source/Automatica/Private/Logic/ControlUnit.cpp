@@ -3,6 +3,7 @@
 
 #include "Logic/ControlUnit.h"
 
+#include "FMODBlueprintStatics.h"
 #include "Core/CAutomatica.h"
 #include "Kismet/GameplayStatics.h"
 #include "Logging/StructuredLog.h"
@@ -21,11 +22,16 @@ AControlUnit::AControlUnit()
 	bIsPlaying = false;
 	SequencePointer = 0;
 	SequenceLastTime = 0;
+	CommandLimit = 10;
+	BaseIconScale = 1;
 }
 
-void AControlUnit::AddCommand(const ELogicControlType Command)
+bool AControlUnit::AddCommand(const ELogicControlType Command)
 {
+	if (Commands.Num() >= CommandLimit)
+		return false;
 
+	
 	auto Icon = Cast<AControlUnitIcon>(GetWorld()->SpawnActor(IconClass));
 	Icon->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
 	//Instance.Icon = NewObject<AControlUnitIcon>(RootComponent, IconClass);
@@ -34,7 +40,11 @@ void AControlUnit::AddCommand(const ELogicControlType Command)
 	Commands.Add(Icon);
 	CommandChildBuffer.Add(Icon);
 
-	const double Scale = 1 * FMath::Pow(LayerScaleFactor, CurrentLayer);
+	Icon->SetColor(UAutomatica::GetChannelColor(ChannelOut));
+
+	
+
+	const double Scale = BaseIconScale * FMath::Pow(LayerScaleFactor, CurrentLayer);
 	Icon->SetScale(Scale);
 	CommandIndexPtr++;
 
@@ -43,6 +53,10 @@ void AControlUnit::AddCommand(const ELogicControlType Command)
 		ContainerIndexStack.Add(Commands.Num() - 1);
 		CurrentLayer++;
 	}
+
+	UpdateLimitDisplay();
+
+	return true;
 }
 
 void AControlUnit::Backspace()
@@ -66,6 +80,8 @@ void AControlUnit::Backspace()
 	{
 		CurrentLayer = 0;
 	}
+
+	UpdateLimitDisplay();
 }
 
 void AControlUnit::CloseNesting()
@@ -80,9 +96,41 @@ void AControlUnit::PlaySequence()
 
 	UAutomatica::SetControlUnitPlaying(this, true);
 	
+	for(const auto Cmd: Commands)
+		Cmd->SetVisibility(0.1);
+	
 	SequencePointer = -1;
 	SequenceLastTime = UGameplayStatics::GetTimeSeconds(this);
 	bIsPlaying = true;
+}
+
+void AControlUnit::AbortSequence()
+{
+	if (!bIsPlaying) return;
+
+	SequenceLastTime = UGameplayStatics::GetTimeSeconds(this) + 1;
+	SequencePointer = Commands.Num()-1;
+}
+
+void AControlUnit::ClearUnit()
+{
+	if (bIsPlaying) return;
+	while(CommandIndexPtr >= 0)
+	{
+		Backspace();
+	}
+}
+
+TArray<TEnumAsByte<ELogicControlType>> AControlUnit::GetComandSequence()
+{
+	TArray<TEnumAsByte<ELogicControlType>> Sequence;
+
+	for(const auto Icon: Commands)
+	{
+		Sequence.Add(Icon->GetCommand());
+	}
+
+	return Sequence;
 }
 
 void AControlUnit::OnConstruction(const FTransform& Transform)
@@ -99,6 +147,8 @@ void AControlUnit::OnConstruction(const FTransform& Transform)
 	{
 		Screen->SetStaticMesh(nullptr);
 	}
+	
+	UpdateLimitDisplay();
 }
 
 void AControlUnit::BeginPlay()
@@ -106,6 +156,19 @@ void AControlUnit::BeginPlay()
 	Super::BeginPlay();
 	CurrentLayer = 0;
 	CommandIndexPtr = -1;
+
+	UpdateLimitDisplay();
+}
+
+void AControlUnit::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	for(auto Icon: CommandChildBuffer)
+	{
+		if (IsValid(Icon))
+			Icon->Destroy();
+	}
 }
 
 void AControlUnit::HandleLayer(const uint8 BatchLayer, int& Index, double LeftOffset, AControlUnitIcon* Container)
@@ -174,18 +237,41 @@ void AControlUnit::Tick(const float DeltaTime)
 
 			if (SequencePointer >= CmdNum)
 			{
+				UE_LOGFMT(LogTemp, Warning, " SET UNIT NON_PLAYING");
 				UAutomatica::SetControlUnitPlaying(this, false);
 				bIsPlaying = false;
 			} else
 			{
-				UAutomatica::SendLogicCommand(this, ChannelOut, Commands[SequencePointer]->GetCommand());
-				GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, UEnum::GetValueAsString(Commands[SequencePointer]->GetCommand()));
-
+				if (SequencePointer > 0)
+					Commands[SequencePointer-1]->SetVisibility(0.3);
+				
+				const auto Cmd = Commands[SequencePointer];
+				Cmd->SetVisibility(1);
+				UAutomatica::GSendLogicCommand(this, Cmd->GetCommand(), ChannelOut);
+				//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, UEnum::GetValueAsString(Commands[SequencePointer]->GetCommand()));
+				UFMODBlueprintStatics::PlayEvent2D(this, StepSound, true);
+				
 				if (SequencePointer >= (CmdNum - 1))
-					SequenceLastTime = Time + 2;
+					SequenceLastTime = Time + 1;
 				else
 					SequenceLastTime = Time;
 			}
 		}
 	}
+}
+
+void AControlUnit::LogicReset()
+{
+	Super::LogicReset();
+
+	for(const auto Cmd: Commands)
+		Cmd->SetVisibility(1);
+}
+
+void AControlUnit::UpdateLimitDisplay() const
+{
+	OnSequenceUpdate.Broadcast(Commands.Num());
+	if (!LimitDisplay) return;
+
+	LimitDisplay->SetValue(CommandLimit - Commands.Num());
 }
