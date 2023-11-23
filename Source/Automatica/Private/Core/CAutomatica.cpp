@@ -94,10 +94,10 @@ bool UAutomatica::ReleaseLogicActor(ALogicActor* LogicActor)
 	return true;
 }
 
-bool UAutomatica::GSendLogicCommand(const ALogicActor* Sender, const ELogicControlType Command, const int32 Channel)
+bool UAutomatica::GSendLogicCommand(const UObject* Outer, const ELogicControlType Command, const int32 Channel)
 {
 	UAutomatica* A;
-	if (!Get(Sender, A))
+	if (!Get(Outer, A))
 		return false;
 
 	A->SendLogicCommand(Command, Channel);

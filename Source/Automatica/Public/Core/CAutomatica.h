@@ -48,7 +48,7 @@ public:
 
 	/** Send a command instance to all registered logic actors matching the given channel mask */
 	UFUNCTION(BlueprintCallable, Category="Automatica", meta=(WorldContext="Outer"), DisplayName="Send Logic Command")
-	static bool GSendLogicCommand(const ALogicActor* Sender, const ELogicControlType Command, UPARAM(meta=(Bitmask, BitmaskEnum = "/Script/Automatica.EControlChannel")) const int32 Channel = 7);
+	static bool GSendLogicCommand(const UObject* Outer, const ELogicControlType Command, UPARAM(meta=(Bitmask, BitmaskEnum = "/Script/Automatica.EControlChannel")) const int32 Channel = 7);
 
 	/** Send a command instance to all registered logic actor matching the given channel mask */
 	UFUNCTION(Exec)
