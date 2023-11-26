@@ -43,7 +43,8 @@ void UInteractionCatcher::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (UAutomatica::IsInteractionEnabled(this))
 	{
 		TArray<FHitResult> Hits;
-		GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation(), FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(20));
+		
+		GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation() + GetForwardVector() * 1000, FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(10));
 
 	
 		for(auto Hit: Hits)

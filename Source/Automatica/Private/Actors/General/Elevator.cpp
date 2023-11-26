@@ -142,3 +142,10 @@ void AElevator::Tick(const float DeltaTime)
 	}
 }
 
+void AElevator::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	ElevatorSoundInstance->SetMobility(EComponentMobility::Movable);
+}
+
