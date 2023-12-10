@@ -39,14 +39,14 @@ void UInteractionCatcher::TickComponent(float DeltaTime, ELevelTick TickType,
 	
 	AControlButton* ClosestButton = nullptr;
 	double ClosestDistance = INFINITY;
+	double ClosestHitDistance = INFINITY;
 
 	if (UAutomatica::IsInteractionEnabled(this))
 	{
 		TArray<FHitResult> Hits;
 		
-		GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation() + GetForwardVector() * 1000, FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(10));
+		GetWorld()->SweepMultiByChannel(Hits, GetComponentLocation(), GetComponentLocation() + GetForwardVector() * 1000, FQuat::Identity, ECC_GameTraceChannel2, FCollisionShape::MakeSphere(5));
 
-	
 		for(auto Hit: Hits)
 		{
 			const auto Button = Cast<AControlButton>(Hit.GetActor());
@@ -58,8 +58,18 @@ void UInteractionCatcher::TickComponent(float DeltaTime, ELevelTick TickType,
 			if (ClosestDistance <= ButtonDistance) continue;
 
 			ClosestDistance = ButtonDistance;
+			ClosestHitDistance = Hit.Distance;
 			ClosestButton = Button;
 		}
+
+		FColor Col = FColor::Orange;
+		if (ClosestButton)
+		{
+			//DrawDebugSphere(GetWorld(), GetComponentLocation() + GetForwardVector() * ClosestHitDistance, 5, 5, FColor::Orange);
+			Col = FColor::Green;
+		}
+		
+		DrawDebugLine(GetWorld(), GetComponentLocation(), GetComponentLocation() + GetForwardVector() * 1000, Col, false, -1, 0, 2);
 	}
 
 	if (CurrentlyTargetedButton != ClosestButton)
@@ -71,5 +81,7 @@ void UInteractionCatcher::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		CurrentlyTargetedButton = ClosestButton;
 	}
+
+	
 }
 

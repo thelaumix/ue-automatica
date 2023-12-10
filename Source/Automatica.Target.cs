@@ -9,6 +9,8 @@ public class AutomaticaTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V4;
+		
+		//GlobalDefinitions.Add("ALLOW_CONSOLE_IN_SHIPPING=1");
 
 		ExtraModuleNames.AddRange( new string[] { "Automatica" } );
 	}
